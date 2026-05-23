@@ -50,12 +50,17 @@ function normalizeMta(raw: MTARawAlert): CityEvent {
   const summary = trim200(descTranslations[0]?.text ?? "");
   const now = new Date().toISOString();
 
+  // Store affected route letters in neighborhood for line filtering (e.g. "A C E")
+  const entities = (alert?.informedEntity as { routeId?: string }[] | undefined) ?? [];
+  const routes = Array.from(new Set(entities.map((e) => e.routeId).filter(Boolean))).join(" ");
+
   return {
     id: `mta_${raw.id || simpleHash(title)}`,
     source: "mta",
     category: "transit",
     title,
     summary,
+    neighborhood: routes || undefined,
     severity: "low",
     occurredAt: now,
     fetchedAt: now,
