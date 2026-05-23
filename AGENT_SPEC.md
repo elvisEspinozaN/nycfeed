@@ -9,7 +9,7 @@
 ## What This App Is
 
 NYC Pulse is a TikTok-style vertical civic feed for New York City.
-It shows nearby 311 complaints, MTA transit disruptions, and local events ( Public Event Categories
+It shows 311 complaints, MTA transit disruptions, and local events ( Public Event Categories
 Community Block Parties
 Open Streets Pedestrian Events
 Street Fairs and Craft Markets
@@ -24,7 +24,14 @@ Road Races and Marathons
 Community Board Public Meetings
 Police Neighborhood Safety Forums
 Public Library Community Workshops
-Public Park Volunteer Cleanups) — filtered by the user's location and radius.
+Public Park Volunteer Cleanups).
+
+Feed modes:
+- Near Me: requires `lat` and `lng`; filters coordinate-bearing events by radius in JS.
+- All NYC: sends `lat=null` and `lng=null`; skips distance filtering.
+- Transit Line: optional `line` filter, e.g. `A`, `L`, `7`; returns only MTA events affecting that route.
+- MTA alerts often have no coordinates. Keep no-coordinate events in Near Me instead of hiding transit.
+- Because `CityEvent` cannot change, normalized MTA route IDs are stored in `neighborhood` as a space-delimited route list. Do not render that field as a neighborhood for transit cards.
 
 ---
 
@@ -205,6 +212,17 @@ queryFeed(lat: number, lng: number, radiusMiles: number, category?: string): Pro
 
 - Use `@clickhouse/client` npm package
 - `queryFeed`: pull last 200 events, return all, geo filtering happens in JS via `lib/geo.ts`
+- Current signature supports All NYC and subway line filtering:
+```typescript
+queryFeed(
+  lat: number | null,
+  lng: number | null,
+  radiusMiles: number,
+  category?: string,
+  line?: string
+): Promise<CityEvent[]>
+```
+- If `line` is provided, return only MTA events whose normalized route list contains that line
 - Raw queries only
 
 **Done when:** `insertEvents` and `queryFeed` connect to real ClickHouse Cloud instance.
@@ -314,14 +332,20 @@ type AgentSummary = {
 
 #### `GET /api/feed`
 
-- Params: `lat`, `lng`, `radiusMiles`, `category` (optional)
-- Calls `queryFeed()` then filters by `haversineDistance`
+- Params: `lat`, `lng`, `radiusMiles`, `category` (optional), `line` (optional)
+- `lat` and `lng` may be omitted or set to `all`/`null` for All NYC mode
+- Calls `queryFeed()`; ClickHouse pulls recent rows, JS handles radius and line filtering
 - If empty → return `DEMO_EVENTS` (5 hardcoded, never blank)
 - Returns `{ events: CityEvent[] }`
 
 DEMO_EVENTS: 5 events covering all 3 categories and all 3 severities.
 
 **Done when:** both routes return valid JSON, feed never blank.
+
+### Scheduled Ingest
+
+- `vercel.json` schedules `POST /api/ingest` hourly.
+- This depends on Ticket 5 creating `app/api/ingest/route.ts`; until then the cron target 404s.
 
 ---
 
