@@ -2,6 +2,7 @@ import { createClient } from "@clickhouse/client";
 
 import { haversineDistance } from "@/lib/geo";
 import type { CityEvent } from "@/types/event";
+import type { CHRow } from "@/types/clickhouse";
 
 let client: ReturnType<typeof createClient> | undefined;
 
@@ -26,24 +27,6 @@ function getClient() {
   return client;
 }
 
-type CHRow = {
-  id: string;
-  source: string;
-  category: string;
-  title: string;
-  summary: string;
-  borough: string | null;
-  neighborhood: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  address: string | null;
-  source_url: string | null;
-  severity: string;
-  status: string | null;
-  occurred_at: string;
-  fetched_at: string;
-};
-
 const VALID_CATEGORIES = new Set(["problem", "transit", "event"]);
 
 // ClickHouse DateTime → ISO string
@@ -53,7 +36,10 @@ function toIso(dt: string): string {
 
 // ISO string → ClickHouse DateTime format
 function toCHDatetime(iso: string): string {
-  return new Date(iso).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+  return new Date(iso)
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d{3}Z$/, "");
 }
 
 export async function insertEvents(events: CityEvent[]): Promise<void> {
@@ -88,10 +74,13 @@ export async function queryFeed(
   lat: number,
   lng: number,
   radiusMiles: number,
-  category?: string
+  category?: string,
 ): Promise<CityEvent[]> {
-  const safeCategory = category && VALID_CATEGORIES.has(category) ? category : null;
-  const categoryClause = safeCategory ? `WHERE category = '${safeCategory}'` : "";
+  const safeCategory =
+    category && VALID_CATEGORIES.has(category) ? category : null;
+  const categoryClause = safeCategory
+    ? `WHERE category = '${safeCategory}'`
+    : "";
 
   const result = await getClient().query({
     query: `SELECT * FROM city_events ${categoryClause} ORDER BY fetched_at DESC LIMIT 200`,

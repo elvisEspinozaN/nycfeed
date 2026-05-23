@@ -225,14 +225,15 @@ queryFeed(lat: number, lng: number, radiusMiles: number, category?: string): Pro
 #### `lib/sources/mta.ts`
 
 - URL: `https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fsubway-alerts`
-- Header: `x-api-key: ${MTA_API_KEY}`
-- If key missing or fetch fails → return 3 hardcoded demo alerts, labeled `_demo`
+- Accounts and API keys are no longer required for MTA realtime feeds
+- Header: `x-api-key: ${MTA_API_KEY}` only if an optional key is set
+- If fetch fails → return 3 hardcoded demo alerts, labeled `_demo`
 
 #### `lib/sources/nimbleEvents.ts`
 
 - Target: `https://www.nycgovparks.org/events`
 - Fields: event name, date, location, borough, url
-- Nimble endpoint: `POST https://api.nimbleway.com/v1/extract`
+- Nimble endpoint: `POST https://sdk.nimbleway.com/v1/extract`
 - Header: `Authorization: Bearer ${NIMBLE_API_KEY}`
 - If key missing → return 3 hardcoded demo events, labeled `_demo`
 
@@ -437,7 +438,7 @@ Sections:
 | `CLICKHOUSE_PASSWORD`           | `lib/clickhouse.ts`           | Yes                          |
 | `CLICKHOUSE_DATABASE`           | `lib/clickhouse.ts`           | Yes                          |
 | `NIMBLE_API_KEY`                | `lib/sources/nimbleEvents.ts` | No (stubs if missing)        |
-| `MTA_API_KEY`                   | `lib/sources/mta.ts`          | No (stubs if missing)        |
+| `MTA_API_KEY`                   | `lib/sources/mta.ts`          | No (optional legacy key)     |
 | `DATADOG_API_KEY`               | `lib/agent/runAgent.ts`       | No (console logs if missing) |
 | `NEXT_PUBLIC_SUPABASE_URL`      | `app/login/page.tsx`          | Yes                          |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `app/login/page.tsx`          | Yes                          |
