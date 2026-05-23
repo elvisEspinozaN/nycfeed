@@ -71,10 +71,11 @@ export async function insertEvents(events: CityEvent[]): Promise<void> {
 }
 
 export async function queryFeed(
-  lat: number,
-  lng: number,
+  lat: number | null,
+  lng: number | null,
   radiusMiles: number,
   category?: string,
+  line?: string,
 ): Promise<CityEvent[]> {
   const safeCategory =
     category && VALID_CATEGORIES.has(category) ? category : null;
@@ -108,15 +109,16 @@ export async function queryFeed(
       fetchedAt: toIso(row.fetched_at),
     }))
     .filter((event) => {
-      if (event.latitude === undefined || event.longitude === undefined) {
-        // MTA alerts usually do not include coordinates, so keep events we
-        // cannot distance-filter instead of removing whole categories.
-        return true;
+      // Line filter is transit-only. MTA route IDs are stored in neighborhood.
+      if (line) {
+        if (event.source !== "mta") return false;
+        const routes = event.neighborhood?.toUpperCase().split(" ") ?? [];
+        if (!routes.includes(line.toUpperCase())) return false;
       }
 
-      return (
-        haversineDistance(lat, lng, event.latitude, event.longitude) <=
-        radiusMiles
-      );
+      // Near Me: filter by distance. All NYC: skip when no coords provided.
+      if (lat === null || lng === null) return true;
+      if (event.latitude === undefined || event.longitude === undefined) return true;
+      return haversineDistance(lat, lng, event.latitude, event.longitude) <= radiusMiles;
     });
 }
