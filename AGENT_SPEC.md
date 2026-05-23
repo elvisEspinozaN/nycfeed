@@ -329,11 +329,13 @@ type AgentSummary = {
 
 - Calls `runAgent()`
 - Returns `{ success: true, summary: AgentSummary }`
+- Triggered by the UI refresh button only. Do not configure Vercel cron.
 
 #### `GET /api/feed`
 
 - Params: `lat`, `lng`, `radiusMiles`, `category` (optional), `line` (optional)
 - `lat` and `lng` may be omitted or set to `all`/`null` for All NYC mode
+- If `line` is set, backend forces `category="transit"` before calling `queryFeed()`
 - Calls `queryFeed()`; ClickHouse pulls recent rows, JS handles radius and line filtering
 - If empty → return `DEMO_EVENTS` (5 hardcoded, never blank)
 - Returns `{ events: CityEvent[] }`
@@ -341,11 +343,6 @@ type AgentSummary = {
 DEMO_EVENTS: 5 events covering all 3 categories and all 3 severities.
 
 **Done when:** both routes return valid JSON, feed never blank.
-
-### Scheduled Ingest
-
-- `vercel.json` schedules `POST /api/ingest` hourly.
-- This depends on Ticket 5 creating `app/api/ingest/route.ts`; until then the cron target 404s.
 
 ---
 
@@ -417,11 +414,11 @@ Uses shadcn `card` and `badge`. Shows in order:
 #### `app/page.tsx`
 
 - Fetches `/api/feed` on mount and filter/radius change
-- "Run Agent" button → calls `/api/ingest` → shows live step log
+- Refresh button → calls `POST /api/ingest` → shows live step log
 - Loading state between fetches
 - Requires auth (redirect to `/login` if no session)
 
-**Done when:** feed renders, scrolls, filters work, Run Agent fires, works on mobile and desktop.
+**Done when:** feed renders, scrolls, filters work, Refresh fires ingest, works on mobile and desktop.
 
 ---
 
@@ -474,7 +471,7 @@ Sections:
 1. `npm run dev` starts without errors
 2. `/api/ingest` runs full pipeline, returns `AgentSummary`
 3. `/api/feed?lat=40.71&lng=-74.00&radiusMiles=2` returns events
-4. Frontend scrolls, filters work, Run Agent fires
+4. Frontend scrolls, filters work, Refresh fires ingest
 5. Datadog or console shows named spans for every step
 6. ClickHouse Cloud shows rows in `city_events` after ingest
 7. Feed never blank
